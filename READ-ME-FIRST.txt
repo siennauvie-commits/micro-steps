@@ -1,0 +1,17 @@
+micro steps - how to put it online (free)
+
+QUICK WAY (works now, saves on each device, no phone-to-ipad sync)
+1. Unzip this folder on your laptop.
+2. Go to app.netlify.com/drop while signed in.
+3. Drag the "public" folder (only that folder) onto the page.
+4. Open the link it gives you in Safari on your iPhone > Share > Add to Home Screen.
+
+SYNC WAY (phone and iPad share the same list)
+1. Make a free GitHub account at github.com.
+2. Make a new repository called micro-steps. Click "uploading an existing file"
+   and drag in EVERYTHING inside this folder (public, netlify, package.json, netlify.toml).
+   Click Commit changes.
+3. On Netlify: Add new project > Import an existing project > GitHub > pick micro-steps > Deploy.
+4. Open the new link on each device > Share > Add to Home Screen.
+5. In the app on your iPhone: gear > make a sync code.
+   On the iPad: gear > have a code? > type it > join.
