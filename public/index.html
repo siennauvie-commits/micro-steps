@@ -74,7 +74,8 @@ body{
   font-weight:600;
   font-size:1.0625rem;
   line-height:1.4;
-  padding-top:max(12px,env(safe-area-inset-top,0px));
+  /* extra room at the top so the buttons sit below the iphone's blurred top edge */
+  padding-top:calc(max(12px,env(safe-area-inset-top,0px)) + 22px);
   padding-bottom:max(12px,env(safe-area-inset-bottom,0px));
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -784,15 +785,26 @@ button.count svg{flex:none;width:22px;height:22px;fill:none;stroke:var(--accent)
       if(i<index)mark.innerHTML=ICON_TICK;else{var r=document.createElement('span');r.className='ring';mark.appendChild(r)}
       var txt=document.createElement('span');txt.textContent=t;
       b.appendChild(mark);b.appendChild(txt);
-      b.setAttribute('aria-label',(i<index?'done: ':i===index?'current step: ':'')+t+'. go to this step');
+      b.setAttribute('aria-label',t+(i<index?'. done, tap to untick':'. tap to tick off'));
       if(i===index){b.setAttribute('aria-current','step');nowEl=li}
-      b.addEventListener('click',function(){
-        if(i!==index){index=i;persist('current')}
-        closeList();
-      });
+      b.addEventListener('click',function(){tickTo(i)});
       li.appendChild(b);box.appendChild(li);
     });
     return nowEl;
+  }
+  /* tap a step: tick it (and everything before it). tap a ticked step: untick it. you stay in the list. */
+  function tickTo(i){
+    if(i<index){index=i}
+    else if(i>=steps.length-1){closeList();finish();return}
+    else{index=i+1}
+    persist('current');
+    var box=$('allList'),keep=box.scrollTop,nowEl=renderList();
+    box.scrollTop=keep;
+    if(nowEl){
+      var top=nowEl.offsetTop-box.offsetTop;
+      if(top<box.scrollTop||top+nowEl.offsetHeight>box.scrollTop+box.clientHeight)
+        box.scrollTo({top:Math.max(0,top-box.clientHeight/3),behavior:reduce?'auto':'smooth'});
+    }
   }
   function openList(){
     if(deckMode!=='steps'||!steps.length||busy)return;
