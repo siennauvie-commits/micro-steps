@@ -95,6 +95,38 @@ button{touch-action:manipulation;cursor:pointer}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-block:2px 12px}
 .count{font-family:var(--font-display);font-weight:500;font-size:1.3rem;color:var(--muted);font-variant-numeric:tabular-nums;min-width:0;white-space:nowrap}
 .count b{color:var(--text);font-weight:600}
+button.count{
+  border:0;background:var(--surface);border-radius:99px;min-height:46px;padding:8px 14px 8px 10px;
+  display:inline-flex;align-items:center;gap:8px;font-size:1.1rem;
+}
+button.count svg{flex:none;width:22px;height:22px;fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+/* all steps: the whole list on one page */
+.listHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:2px 12px}
+.listHead h2{margin:0;font-family:var(--font-display);font-weight:600;font-size:1.9rem}
+.listHead p{margin:2px 0 0;color:var(--muted);font-size:.95rem;font-variant-numeric:tabular-nums}
+.allList{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0 -6px;padding:0 6px 12px;list-style:none;display:flex;flex-direction:column;gap:4px}
+.allList li{min-width:0}
+.allList button{
+  width:100%;border:0;background:transparent;text-align:left;
+  display:flex;align-items:flex-start;gap:12px;
+  min-height:52px;padding:12px 14px;border-radius:16px;
+  font-weight:600;font-size:1.1rem;line-height:1.35;overflow-wrap:anywhere;
+}
+.allList .mark{flex:none;width:24px;height:24px;margin-top:1px;display:grid;place-items:center}
+.allList .mark svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.allList .ring{width:18px;height:18px;border-radius:50%;border:2.5px solid var(--line)}
+.allList .done button{color:var(--muted);opacity:.6}
+.allList .done .mark{color:var(--go)}
+.allList .now button{background:var(--accent);color:var(--accent-ink);font-weight:800}
+.allList .now .ring{border-color:var(--accent-ink);background:var(--accent-ink)}
+.allList .zone button{
+  min-height:44px;padding:18px 14px 6px;
+  font-family:var(--font-display);font-weight:600;font-size:.9rem;letter-spacing:.08em;color:var(--muted);
+}
+.allList .zone .mark{display:none}
+.allList .zone.now button{padding-top:12px;padding-bottom:12px;color:var(--accent-ink)}
+.allList .zone.done button{opacity:.6}
 .pills{display:flex;gap:6px;flex-wrap:nowrap}
 .pill{
   min-height:46px;min-width:46px;padding:8px 16px;border:0;border-radius:99px;
@@ -237,7 +269,10 @@ button{touch-action:manipulation;cursor:pointer}
 
 <section class="view" id="runner" hidden>
   <div class="top">
-    <div class="count"><b id="posNow">1</b> of <span id="posTotal">1</span></div>
+    <button class="count" id="seeAllBtn" type="button" aria-label="see all steps">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>
+      <span><b id="posNow">1</b> of <span id="posTotal">1</span></span>
+    </button>
     <div class="pills">
       <button class="pill" id="timerBtn" type="button" aria-label="timer">timer</button>
       <button class="pill icon" id="modeBtn" type="button" aria-label="switch to light mode"></button>
@@ -258,6 +293,16 @@ button{touch-action:manipulation;cursor:pointer}
     <button class="btn" id="backBtn" type="button">back</button>
     <button class="btn primary" id="nextBtn" type="button">done</button>
   </div>
+</section>
+
+<section class="view" id="listView" hidden>
+  <div class="listHead">
+    <div><h2>all steps</h2><p id="listCount"></p></div>
+    <button class="pill icon" id="listClose" type="button" aria-label="back to my step">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <ol class="allList" id="allList"></ol>
 </section>
 
 <section class="view scroll" id="editor" hidden>
@@ -503,6 +548,7 @@ button{touch-action:manipulation;cursor:pointer}
       isExample=!!d.example;
       local.set('ms-current',docData('current'));
       if(currentView==='editor'){$('resumeBtn').hidden=steps.length===0;return}
+      if(currentView==='list'){if(steps.length){renderList();render()}else openEditor();return}
       if(currentView==='runner'&&deckMode==='steps'){
         if(steps.length){resetCard();render()}else openEditor();
       }
@@ -641,12 +687,12 @@ button{touch-action:manipulation;cursor:pointer}
   });
 
   /* ---------- views ---------- */
-  var VIEWS={runner:'runner',editor:'editor',settings:'settings',done:'doneView'};
+  var VIEWS={runner:'runner',list:'listView',editor:'editor',settings:'settings',done:'doneView'};
   function showView(name){
     currentView=name;
     if(name==='runner'||name==='editor')local.set('ms-view',name);
     Object.keys(VIEWS).forEach(function(k){$(VIEWS[k]).hidden=(k!==name)});
-    if(name==='runner')lockScreen();else unlockScreen();
+    if(name==='runner'||name==='list')lockScreen();else unlockScreen();
     if(name==='editor')$('resumeBtn').hidden=steps.length===0;
   }
   function openEditor(keepText){
@@ -688,6 +734,7 @@ button{touch-action:manipulation;cursor:pointer}
     $('editBtn').hidden=intro;
     $('gearBtn').hidden=intro;
     $('skipBtn').hidden=!intro;
+    $('seeAllBtn').disabled=intro;
     $('hint').textContent=intro?'swipe left for next, swipe right to go back':'swipe left when a step is done, swipe right to go back';
   }
   function resetCard(){card.style.transition='';card.style.transform='';card.style.opacity=''}
@@ -721,6 +768,43 @@ button{touch-action:manipulation;cursor:pointer}
       setTimeout(function(){resetCard();busy=false},220);
     },160);
   }
+
+  /* ---------- all steps: see the whole list, tap a step to jump there ---------- */
+  var ICON_TICK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function isZone(t){return t.length<=40&&/[A-Z]/.test(t)&&t===t.toUpperCase()}
+  function renderList(){
+    var box=$('allList'),n=steps.length,nowEl=null;
+    box.textContent='';
+    $('listCount').textContent='on step '+(index+1)+' of '+n+(index?' · '+index+' done':'');
+    steps.forEach(function(t,i){
+      var li=document.createElement('li');
+      li.className=(isZone(t)?'zone ':'')+(i<index?'done':i===index?'now':'');
+      var b=document.createElement('button');b.type='button';
+      var mark=document.createElement('span');mark.className='mark';
+      if(i<index)mark.innerHTML=ICON_TICK;else{var r=document.createElement('span');r.className='ring';mark.appendChild(r)}
+      var txt=document.createElement('span');txt.textContent=t;
+      b.appendChild(mark);b.appendChild(txt);
+      b.setAttribute('aria-label',(i<index?'done: ':i===index?'current step: ':'')+t+'. go to this step');
+      if(i===index){b.setAttribute('aria-current','step');nowEl=li}
+      b.addEventListener('click',function(){
+        if(i!==index){index=i;persist('current')}
+        closeList();
+      });
+      li.appendChild(b);box.appendChild(li);
+    });
+    return nowEl;
+  }
+  function openList(){
+    if(deckMode!=='steps'||!steps.length||busy)return;
+    var nowEl=renderList();
+    showView('list');
+    var box=$('allList');
+    if(nowEl)box.scrollTop=Math.max(0,nowEl.offsetTop-box.offsetTop-box.clientHeight/3);
+  }
+  function closeList(){resetCard();render();showView('runner')}
+  $('seeAllBtn').addEventListener('click',openList);
+  $('listClose').addEventListener('click',closeList);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&currentView==='list')closeList()});
 
   /* ---------- intro ---------- */
   function startIntro(auto){
